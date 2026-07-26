@@ -84,6 +84,8 @@ let photoImg = null;
 let splitMode = false;
 let splitPos = 0.5;          // 0..1 posição do divisor
 let noFaceFrames = 0;
+/* Recorte "cover" da fonte para casar exatamente com o palco 3:4 na tela.   */
+let srcW = 0, srcH = 0, cropX = 0, cropY = 0, cropW = 0, cropH = 0;
 
 /* =============================== Fluxo modal ============================= */
 el.open.addEventListener("click", openModal);
@@ -239,7 +241,7 @@ async function startCamera() {
   el.permission.hidden = true;
   el.video.srcObject = stream;
   try { await el.video.play(); } catch (_) {}
-  sizeCanvases(el.video.videoWidth || 720, el.video.videoHeight || 960);
+  fitSource(el.video.videoWidth || 720, el.video.videoHeight || 960);
 
   el.loading.hidden = true;
   showTryUI();
@@ -265,10 +267,7 @@ async function loadPhoto(file) {
   const img = new Image();
   img.onload = async () => {
     mode = "photo"; mirror = false; photoImg = img;
-    // limita o tamanho para performance
-    let w = img.naturalWidth, h = img.naturalHeight;
-    const maxSide = 1400, k = Math.min(1, maxSide / Math.max(w, h));
-    sizeCanvases(Math.round(w * k), Math.round(h * k));
+    fitSource(img.naturalWidth, img.naturalHeight);
     try {
       await ensureModel();
       await setRunningMode("IMAGE");
@@ -298,6 +297,23 @@ function sizeCanvases(w, h) {
   [el.canvas, maskCanvas, tintCanvas].forEach((c) => { c.width = w; c.height = h; });
 }
 
+/* Define o recorte "cover" da fonte para o palco 3:4 e dimensiona o canvas
+   com esse MESMO aspecto — assim a linha do divisor (DOM) e o limite do
+   filtro (canvas) ficam exatamente no mesmo lugar. */
+function fitSource(sw, sh) {
+  srcW = sw; srcH = sh;
+  const targetAR = 3 / 4;
+  const srcAR = sw / sh;
+  if (srcAR > targetAR) { cropH = sh; cropW = sh * targetAR; }
+  else { cropW = sw; cropH = sw / targetAR; }
+  cropX = (sw - cropW) / 2;
+  cropY = (sh - cropH) / 2;
+  let cw = Math.round(cropW), ch = Math.round(cropH);
+  const cap = 1400;
+  if (Math.max(cw, ch) > cap) { const k = cap / Math.max(cw, ch); cw = Math.round(cw * k); ch = Math.round(ch * k); }
+  sizeCanvases(cw, ch);
+}
+
 /* =============================== Render ================================= */
 function loop() {
   if (!running) return;
@@ -319,8 +335,13 @@ function drawBase() {
   const w = el.canvas.width, h = el.canvas.height;
   const src = mode === "live" ? el.video : photoImg;
   if (!src) return;
-  if (mirror) { ctx.save(); ctx.translate(w, 0); ctx.scale(-1, 1); ctx.drawImage(src, 0, 0, w, h); ctx.restore(); }
-  else ctx.drawImage(src, 0, 0, w, h);
+  if (mirror) {
+    ctx.save(); ctx.translate(w, 0); ctx.scale(-1, 1);
+    ctx.drawImage(src, cropX, cropY, cropW, cropH, 0, 0, w, h);
+    ctx.restore();
+  } else {
+    ctx.drawImage(src, cropX, cropY, cropW, cropH, 0, 0, w, h);
+  }
 }
 
 function render() {
@@ -363,8 +384,11 @@ function applyTint(lm, w, h) {
 }
 
 function buildSkinPath(lm, w, h) {
-  const mx = (nx) => (mirror ? (1 - nx) : nx) * w;
-  const my = (ny) => ny * h;
+  // landmark normalizado -> pixel da FONTE -> pixel do CANVAS recortado
+  const X = (nx) => (nx * srcW - cropX) * (w / cropW);
+  const Y = (ny) => (ny * srcH - cropY) * (h / cropH);
+  const mx = (nx) => (mirror ? (w - X(nx)) : X(nx));
+  const my = (ny) => Y(ny);
   const path = new Path2D();
   const ring = (idx) => {
     idx.forEach((p, i) => {
