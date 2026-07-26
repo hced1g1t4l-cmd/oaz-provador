@@ -280,12 +280,27 @@ html, body {
 /* Prateleira: Sem produto + 4 bastões */
 .shelf { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .stick-card {
+  position: relative; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px 3px 8px;
   border-radius: 14px; cursor: pointer; background: rgba(255,255,255,.05); border: 2px solid transparent;
   transition: transform .15s ease, border-color .15s ease, background .15s;
 }
 .stick-card:hover { transform: translateY(-3px); background: rgba(255,255,255,.1); }
 .stick-card.active { border-color: var(--oaz-amber); background: rgba(255,176,58,.16); }
+
+/* Pincelada na cor do produto, atrás do bastão (fundo transparente) */
+.stick-card .smear {
+  position: absolute; z-index: 0; pointer-events: none;
+  left: -14%; right: -14%; top: 16%; height: 46%;
+  background: var(--tone, #caa07a);
+  -webkit-mask: url(refs/img/smear_mask.png) center/contain no-repeat;
+          mask: url(refs/img/smear_mask.png) center/contain no-repeat;
+  opacity: .82; transform: rotate(-5deg);
+  transition: transform .2s ease, opacity .15s ease;
+}
+.stick-card:hover .smear { opacity: .95; transform: rotate(-5deg) scale(1.05); }
+.stick-card.active .smear { opacity: 1; }
+.stick-card .thumb, .stick-card .stick-tone { position: relative; z-index: 1; }
 .stick-card .thumb { width: 100%; height: 50px; transition: transform .2s ease; }
 .stick-card:hover .thumb { transform: scale(1.06); }
 .stick-card.active .thumb { transform: scale(1.1); }

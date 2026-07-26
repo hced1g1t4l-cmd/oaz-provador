@@ -1,7 +1,7 @@
 import {
   FaceLandmarker,
   FilesetResolver,
-} from "./vision_bundle.js";
+} from "./vision_bundle.mjs";
 
 /* Diretório deste arquivo — para achar wasm/ e models/ localmente. */
 const ASSET_BASE = new URL(".", import.meta.url).href;
@@ -162,7 +162,9 @@ function buildShelf() {
     const card = document.createElement("button");
     card.className = "stick-card" + (i === activeIndex ? " active" : "");
     card.type = "button";
+    card.style.setProperty("--tone", s.color);
     card.innerHTML = `
+      <span class="smear"></span>
       <span class="thumb"><img src="${s.img}" alt="${s.tone}" /></span>
       <span class="stick-tone">${s.tone}</span>`;
     card.addEventListener("click", () => selectShade(i));
