@@ -181,6 +181,9 @@ function selectShade(i) {
 function reflectSelection() {
   const cards = [...el.shelf.children];               // idx0 = sem produto, idx1..4 = cores
   cards.forEach((c, idx) => c.classList.toggle("active", idx - 1 === activeIndex));
+  const locked = activeIndex < 0;
+  el.actSave.classList.toggle("locked", locked);
+  el.actShare.classList.toggle("locked", locked);
   if (activeIndex === -1) {
     el.pinned.hidden = true;
     el.productShade.textContent = "Sem produto";
@@ -551,6 +554,7 @@ el.actSave.addEventListener("click", onCapture);
 
 async function onCapture() {
   if (capturing) return;
+  if (activeIndex < 0) { requireProduct(); return; }
   capturing = true;
   try {
     if (mode === "live") {
@@ -564,6 +568,30 @@ async function onCapture() {
   } finally {
     capturing = false;
   }
+}
+
+/* Sem produto selecionado: avisa e destaca o seletor em vez de capturar. */
+let toastTimer = null;
+function requireProduct() {
+  showToast("Selecione uma cor de produto para tirar a foto");
+  if (el.shelf) {
+    el.shelf.classList.remove("nudge");
+    void el.shelf.offsetWidth;
+    el.shelf.classList.add("nudge");
+  }
+}
+function showToast(msg) {
+  let t = document.getElementById("oaz-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "oaz-toast";
+    t.className = "toast";
+    (el.stage || document.body).appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
 }
 
 /* Contador 3·2·1 transparente sobre a imagem. */
@@ -676,6 +704,7 @@ el.resShare.addEventListener("click", async () => {
 });
 
 el.actShare.addEventListener("click", async () => {
+  if (activeIndex < 0) { requireProduct(); return; }
   try {
     const out = buildCompositeCanvas();
     const blob = await new Promise((res) => out.toBlob(res, "image/png"));

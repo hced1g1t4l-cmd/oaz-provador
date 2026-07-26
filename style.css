@@ -307,6 +307,28 @@ html, body {
 .stick-tone { font-size: 10px; font-weight: 700; color: #f4e9dc; }
 .stick-name { font-size: 9px; color: #a8977f; text-align: center; line-height: 1.1; }
 
+/* Aviso quando falta selecionar produto */
+.toast {
+  position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%) translateY(10px);
+  z-index: 8; max-width: 82%; text-align: center;
+  background: rgba(20,18,15,.92); color: #fff; font-size: 13px; font-weight: 600;
+  padding: 10px 16px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.shelf.nudge { animation: shelfshake .45s ease; }
+@keyframes shelfshake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* Ação de foto/compartilhar bloqueada até escolher um produto */
+.act.locked { opacity: .4; }
+
 /* Item "Sem produto" */
 .noprod-icon {
   width: 30px; height: 30px; border-radius: 50%; border: 2px solid #9a8a78; position: relative; margin: 12px 0;
