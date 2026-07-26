@@ -14,10 +14,10 @@ const ASSET_BASE = new URL(".", import.meta.url).href;
 /* ---------- Cores REAIS medidas das swatches oficiais do OAZ ------------- */
 /* color = cor do creme; cover = cobertura na pele (0..1), calibrada suave.  */
 const SHADES = [
-  { tone: "Cor 1", name: "Claro",       color: "#d3ac82", cover: 0.18, img: "refs/img/stick_cor1.png?v=5", stick: "refs/img/stick_cor1.png?v=5", buy: "https://www.oaz.vc/protetor-facial--solar-stick--cor1/p" },
-  { tone: "Cor 2", name: "Médio Claro", color: "#c99676", cover: 0.20, img: "refs/img/stick_cor2.png?v=5", stick: "refs/img/stick_cor2.png?v=5", buy: "https://www.oaz.vc/protetor-facial--solar-stick-1/p" },
-  { tone: "Cor 3", name: "Médio",       color: "#a97343", cover: 0.25, img: "refs/img/stick_cor3.png?v=5", stick: "refs/img/stick_cor3.png?v=5", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor3/p" },
-  { tone: "Cor 4", name: "Escuro",      color: "#623e22", cover: 0.30, img: "refs/img/stick_cor4.png?v=5", stick: "refs/img/stick_cor4.png?v=5", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor4/p" },
+  { tone: "Cor 1", name: "Claro",       color: "#d3ac82", cover: 0.18, img: "refs/img/stick_cor1.png?v=6", stick: "refs/img/stick_cor1.png?v=6", buy: "https://www.oaz.vc/protetor-facial--solar-stick--cor1/p" },
+  { tone: "Cor 2", name: "Médio Claro", color: "#c99676", cover: 0.20, img: "refs/img/stick_cor2.png?v=6", stick: "refs/img/stick_cor2.png?v=6", buy: "https://www.oaz.vc/protetor-facial--solar-stick-1/p" },
+  { tone: "Cor 3", name: "Médio",       color: "#a97343", cover: 0.25, img: "refs/img/stick_cor3.png?v=6", stick: "refs/img/stick_cor3.png?v=6", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor3/p" },
+  { tone: "Cor 4", name: "Escuro",      color: "#623e22", cover: 0.30, img: "refs/img/stick_cor4.png?v=6", stick: "refs/img/stick_cor4.png?v=6", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor4/p" },
 ];
 
 /* Pré-carrega os recortes (PNG sem fundo) do bastão para "assinar" a foto. */
@@ -60,6 +60,14 @@ const el = {
   productShade: document.getElementById("product-shade"),
   buy:       document.getElementById("buy"),
   shelf:     document.getElementById("shelf"),
+  countdown: document.getElementById("countdown"),
+  countNum:  document.getElementById("count-num"),
+  flash:     document.getElementById("flash"),
+  result:    document.getElementById("result"),
+  resultImg: document.getElementById("result-img"),
+  resRetake: document.getElementById("res-retake"),
+  resSave:   document.getElementById("res-save"),
+  resShare:  document.getElementById("res-share"),
 };
 
 const ctx = el.canvas.getContext("2d");
@@ -120,6 +128,9 @@ function resetToChooser() {
   splitMode = false;
   el.actSplit.classList.remove("on");
   el.fileInput.value = "";
+  el.result.hidden = true;
+  el.countdown.hidden = true;
+  el.flash.hidden = true;
 }
 
 function stopEverything() {
@@ -457,17 +468,17 @@ function drawSignature(o, w, h) {
   const img = STICK_IMGS[activeIndex];
   const m = Math.round(w * 0.035);
 
-  // Bastão no canto inferior direito
+  // Bastão encostado na base da imagem (canto inferior direito)
   if (img && img.complete && img.naturalWidth) {
     const ratio = img.naturalWidth / img.naturalHeight;
-    const sh = Math.round(h * 0.36);
+    const sh = Math.round(h * 0.42);
     const sw = Math.round(sh * ratio);
     const sx = w - m - sw;
-    const sy = h - m - sh;
+    const sy = h - sh;                 // encosta na base
     o.save();
     o.shadowColor = "rgba(0,0,0,.35)";
     o.shadowBlur = Math.round(w * 0.03);
-    o.shadowOffsetY = Math.round(h * 0.006);
+    o.shadowOffsetY = Math.round(-h * 0.004);
     o.drawImage(img, sx, sy, sw, sh);
     o.restore();
   }
@@ -532,11 +543,98 @@ function captureDataURL() {
   return buildCompositeCanvas().toDataURL("image/png");
 }
 
-el.actSave.addEventListener("click", () => {
+let capturing = false;
+
+el.actSave.addEventListener("click", onCapture);
+
+async function onCapture() {
+  if (capturing) return;
+  capturing = true;
+  try {
+    if (mode === "live") {
+      await runCountdown();
+      playShutter();
+      await doFlash();
+    }
+    const url = captureDataURL();
+    el.resultImg.src = url;
+    el.result.hidden = false;
+  } finally {
+    capturing = false;
+  }
+}
+
+/* Contador 3·2·1 transparente sobre a imagem. */
+function runCountdown() {
+  return new Promise((resolve) => {
+    const seq = [3, 2, 1];
+    let i = 0;
+    el.countdown.hidden = false;
+    const step = () => {
+      if (i >= seq.length) { el.countdown.hidden = true; resolve(); return; }
+      el.countNum.textContent = seq[i];
+      el.countNum.style.animation = "none"; void el.countNum.offsetWidth; el.countNum.style.animation = "";
+      i++;
+      setTimeout(step, 850);
+    };
+    step();
+  });
+}
+
+/* Flash branco rápido da captura. */
+function doFlash() {
+  return new Promise((resolve) => {
+    el.flash.hidden = false;
+    el.flash.classList.add("go");
+    setTimeout(() => { el.flash.classList.remove("go"); el.flash.hidden = true; resolve(); }, 360);
+  });
+}
+
+/* Som de clique de câmera sintetizado (sem arquivo externo). */
+function playShutter() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ac = new AC();
+    const burst = (t, dur, gain) => {
+      const n = Math.floor(ac.sampleRate * dur);
+      const buf = ac.createBuffer(1, n, ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let k = 0; k < n; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / n, 2.2);
+      const s = ac.createBufferSource(); s.buffer = buf;
+      const g = ac.createGain(); g.gain.value = gain;
+      const f = ac.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1500;
+      s.connect(f).connect(g).connect(ac.destination); s.start(t);
+    };
+    const t = ac.currentTime;
+    burst(t, 0.028, 0.5);          // "clack" de abertura
+    burst(t + 0.075, 0.05, 0.35);  // "clack" de fechamento
+    setTimeout(() => ac.close(), 500);
+  } catch (_) {}
+}
+
+el.resRetake.addEventListener("click", () => {
+  el.result.hidden = true;
+  if (mode === "photo") resetToChooser();
+});
+
+el.resSave.addEventListener("click", () => {
   const a = document.createElement("a");
   a.download = `oaz-stick-${activeIndex >= 0 ? SHADES[activeIndex].tone.replace(" ", "").toLowerCase() : "original"}.png`;
-  a.href = captureDataURL();
+  a.href = el.resultImg.src;
   a.click();
+});
+
+el.resShare.addEventListener("click", async () => {
+  try {
+    const blob = await (await fetch(el.resultImg.src)).blob();
+    const file = new File([blob], "oaz-stick.png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "OAZ Protetor Solar Stick", text: "Meu tom no provador OAZ" });
+    } else {
+      const a = document.createElement("a"); a.download = "oaz-stick.png"; a.href = el.resultImg.src; a.click();
+    }
+  } catch (e) { console.warn("[OAZ] share cancelado/indisponível", e); }
 });
 
 el.actShare.addEventListener("click", async () => {

@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>OAZ Protetor Solar Stick — Provador Virtual</title>
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
   <!-- ============ PÁGINA DEMO (simula o site da marca) ============ -->
@@ -111,6 +111,22 @@
           <span class="divider-tag divider-tag--before">Antes</span>
           <span class="divider-tag divider-tag--after">Depois</span>
         </div>
+
+        <!-- Contador 3·2·1 (transparente sobre a imagem) -->
+        <div id="countdown" class="countdown" hidden><span id="count-num"></span></div>
+
+        <!-- Flash da foto -->
+        <div id="flash" class="flash" hidden></div>
+
+        <!-- Resultado: foto capturada com os decalques -->
+        <div id="result" class="result" hidden>
+          <img id="result-img" alt="Sua foto com OAZ" />
+          <div class="result-bar">
+            <button id="res-retake" class="res-btn ghost">Refazer</button>
+            <button id="res-save" class="res-btn">Baixar</button>
+            <button id="res-share" class="res-btn primary">Compartilhar</button>
+          </div>
+        </div>
       </div>
 
       <!-- Controles -->
@@ -131,6 +147,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>
