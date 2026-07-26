@@ -1,7 +1,7 @@
 import {
   FaceLandmarker,
   FilesetResolver,
-} from "./vision_bundle.mjs";
+} from "./vision_bundle.js";
 
 /* Diretório deste arquivo — para achar wasm/ e models/ localmente. */
 const ASSET_BASE = new URL(".", import.meta.url).href;
