@@ -251,7 +251,9 @@ html, body {
 .res-btn {
   flex: 1; padding: 12px 8px; border: none; border-radius: 12px; font-weight: 700; font-size: 13px;
   background: rgba(255,255,255,.16); color: #fff; cursor: pointer; touch-action: manipulation;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
 }
+.res-btn svg { width: 16px; height: 16px; flex: 0 0 auto; }
 .res-btn.primary { background: linear-gradient(135deg, var(--oaz-orange), var(--oaz-amber)); }
 .res-btn.ghost { background: rgba(255,255,255,.1); }
 .res-btn:active { transform: scale(.98); }
