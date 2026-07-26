@@ -14,10 +14,10 @@ const ASSET_BASE = new URL(".", import.meta.url).href;
 /* ---------- Cores REAIS medidas das swatches oficiais do OAZ ------------- */
 /* color = cor do creme; cover = cobertura na pele (0..1), calibrada suave.  */
 const SHADES = [
-  { tone: "Cor 1", name: "Claro",       color: "#d3ac82", cover: 0.18, img: "refs/img/stick_cor1.png?v=7", stick: "refs/img/stick_cor1.png?v=7", buy: "https://www.oaz.vc/protetor-facial--solar-stick--cor1/p" },
-  { tone: "Cor 2", name: "Médio Claro", color: "#c99676", cover: 0.20, img: "refs/img/stick_cor2.png?v=7", stick: "refs/img/stick_cor2.png?v=7", buy: "https://www.oaz.vc/protetor-facial--solar-stick-1/p" },
-  { tone: "Cor 3", name: "Médio",       color: "#a97343", cover: 0.25, img: "refs/img/stick_cor3.png?v=7", stick: "refs/img/stick_cor3.png?v=7", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor3/p" },
-  { tone: "Cor 4", name: "Escuro",      color: "#623e22", cover: 0.30, img: "refs/img/stick_cor4.png?v=7", stick: "refs/img/stick_cor4.png?v=7", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor4/p" },
+  { tone: "Cor 1", name: "Claro",       color: "#d3ac82", cover: 0.18, img: "refs/img/stick_cor1.png?v=8", stick: "refs/img/stick_cor1.png?v=8", buy: "https://www.oaz.vc/protetor-facial--solar-stick--cor1/p" },
+  { tone: "Cor 2", name: "Médio Claro", color: "#c99676", cover: 0.20, img: "refs/img/stick_cor2.png?v=8", stick: "refs/img/stick_cor2.png?v=8", buy: "https://www.oaz.vc/protetor-facial--solar-stick-1/p" },
+  { tone: "Cor 3", name: "Médio",       color: "#a97343", cover: 0.25, img: "refs/img/stick_cor3.png?v=8", stick: "refs/img/stick_cor3.png?v=8", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor3/p" },
+  { tone: "Cor 4", name: "Escuro",      color: "#623e22", cover: 0.30, img: "refs/img/stick_cor4.png?v=8", stick: "refs/img/stick_cor4.png?v=8", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor4/p" },
 ];
 
 /* Pré-carrega os recortes (PNG sem fundo) do bastão para "assinar" a foto. */
@@ -590,26 +590,62 @@ function doFlash() {
   });
 }
 
-/* Som de clique de câmera sintetizado (sem arquivo externo). */
+/* Som de obturador analógico (SLR) sintetizado: "cla-CHNK" mecânico.
+   Espelho sobe (batida 1) → ~110ms → cortina/espelho retorna (batida 2). */
 function playShutter() {
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     const ac = new AC();
-    const burst = (t, dur, gain) => {
-      const n = Math.floor(ac.sampleRate * dur);
-      const buf = ac.createBuffer(1, n, ac.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let k = 0; k < n; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / n, 2.2);
-      const s = ac.createBufferSource(); s.buffer = buf;
-      const g = ac.createGain(); g.gain.value = gain;
-      const f = ac.createBiquadFilter(); f.type = "highpass"; f.frequency.value = 1500;
-      s.connect(f).connect(g).connect(ac.destination); s.start(t);
+    const now = ac.currentTime;
+    const master = ac.createGain();
+    master.gain.value = 1.0;
+    master.connect(ac.destination);
+
+    // ruído base reutilizável
+    const nb = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.5), ac.sampleRate);
+    const nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+    // transiente mecânico (corpo): ruído filtrado em banda
+    const mech = (t, bp, q, amp, decay, hp) => {
+      const s = ac.createBufferSource(); s.buffer = nb;
+      const f = ac.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = bp; f.Q.value = q;
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(amp, t + 0.0018);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+      s.connect(f);
+      if (hp) { const h = ac.createBiquadFilter(); h.type = "highpass"; h.frequency.value = hp; f.connect(h); h.connect(g); }
+      else { f.connect(g); }
+      g.connect(master);
+      s.start(t); s.stop(t + decay + 0.03);
     };
-    const t = ac.currentTime;
-    burst(t, 0.028, 0.5);          // "clack" de abertura
-    burst(t + 0.075, 0.05, 0.35);  // "clack" de fechamento
-    setTimeout(() => ac.close(), 500);
+    // "thunk" grave (ressonância do corpo/espelho)
+    const thock = (t, freq, amp, decay) => {
+      const o = ac.createOscillator(); o.type = "sine";
+      o.frequency.setValueAtTime(freq, t);
+      o.frequency.exponentialRampToValueAtTime(freq * 0.65, t + decay);
+      const g = ac.createGain();
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(amp, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+      o.connect(g).connect(master);
+      o.start(t); o.stop(t + decay + 0.03);
+    };
+
+    // Batida 1 — espelho sobe
+    mech(now, 520, 1.0, 0.5, 0.045);
+    thock(now + 0.001, 185, 0.55, 0.09);
+    mech(now + 0.006, 2600, 1.6, 0.16, 0.018, 1800); // tique metálico
+
+    // Batida 2 — cortina/espelho retorna (~110ms depois), mais encorpada
+    const t2 = now + 0.11;
+    mech(t2, 430, 1.1, 0.62, 0.06);
+    thock(t2 + 0.001, 150, 0.62, 0.12);
+    mech(t2 + 0.008, 3000, 1.7, 0.14, 0.02, 2000);
+
+    setTimeout(() => ac.close(), 800);
   } catch (_) {}
 }
 
