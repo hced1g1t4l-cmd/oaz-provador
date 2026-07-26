@@ -8,6 +8,10 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Toque em telas móveis: sem atraso de duplo-toque e sem flash cinza. */
+button, a, .stick-card, .choose-card { -webkit-tap-highlight-color: transparent; }
+.cta, .act, .buy, .close, .stick-card, .choose-card, #grant { touch-action: manipulation; }
+
 html, body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: var(--oaz-deep);
@@ -59,12 +63,21 @@ html, body {
 /* ---------------- Modal ---------------- */
 .tryon {
   position: fixed; inset: 0; z-index: 50; background: rgba(20, 12, 4, 0.55);
-  backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 16px;
+  backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  overscroll-behavior: contain;
 }
 .tryon[hidden] { display: none; }
 
 .tryon-window {
-  width: min(440px, 100%); max-height: 96vh; overflow: hidden; background: #0d0a07;
+  /* largura limitada também pela ALTURA disponível, para o palco 3:4 + controles
+     caberem sem cortar em telas baixas (desktop curto / celular deitado). */
+  width: min(440px, 100%, calc((96vh - 180px) * 0.75));
+  width: min(440px, 100%, calc((96dvh - 180px) * 0.75));
+  max-height: 96vh; max-height: 96dvh;      /* dvh: robusto no Safari/Chrome mobile */
+  overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+  background: #0d0a07;
   border-radius: 24px; box-shadow: var(--shadow); display: flex; flex-direction: column;
   position: relative; animation: pop .25s ease;
 }
@@ -203,7 +216,7 @@ html, body {
 .divider-tag--after { right: 14px; }
 
 /* ---------------- Controles ---------------- */
-.controls { background: #0d0a07; padding: 12px 14px 16px; }
+.controls { background: #0d0a07; padding: 12px 14px max(16px, env(safe-area-inset-bottom)); }
 
 .product-bar {
   display: flex; align-items: center; gap: 12px; padding: 8px 10px; margin-bottom: 12px;
