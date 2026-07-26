@@ -14,11 +14,14 @@ const ASSET_BASE = new URL(".", import.meta.url).href;
 /* ---------- Cores REAIS medidas das swatches oficiais do OAZ ------------- */
 /* color = cor do creme; cover = cobertura na pele (0..1), calibrada suave.  */
 const SHADES = [
-  { tone: "Cor 1", name: "Claro",       color: "#d3ac82", cover: 0.18, img: "refs/img/thumb_cor1.png", buy: "https://www.oaz.vc/protetor-facial--solar-stick--cor1/p" },
-  { tone: "Cor 2", name: "Médio Claro", color: "#c99676", cover: 0.20, img: "refs/img/thumb_cor2.png", buy: "https://www.oaz.vc/protetor-facial--solar-stick-1/p" },
-  { tone: "Cor 3", name: "Médio",       color: "#a97343", cover: 0.25, img: "refs/img/thumb_cor3.png", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor3/p" },
-  { tone: "Cor 4", name: "Escuro",      color: "#623e22", cover: 0.30, img: "refs/img/thumb_cor4.png", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor4/p" },
+  { tone: "Cor 1", name: "Claro",       color: "#d3ac82", cover: 0.18, img: "refs/img/thumb_cor1.png", stick: "refs/img/stick_cor1.png", buy: "https://www.oaz.vc/protetor-facial--solar-stick--cor1/p" },
+  { tone: "Cor 2", name: "Médio Claro", color: "#c99676", cover: 0.20, img: "refs/img/thumb_cor2.png", stick: "refs/img/stick_cor2.png", buy: "https://www.oaz.vc/protetor-facial--solar-stick-1/p" },
+  { tone: "Cor 3", name: "Médio",       color: "#a97343", cover: 0.25, img: "refs/img/thumb_cor3.png", stick: "refs/img/stick_cor3.png", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor3/p" },
+  { tone: "Cor 4", name: "Escuro",      color: "#623e22", cover: 0.30, img: "refs/img/thumb_cor4.png", stick: "refs/img/stick_cor4.png", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor4/p" },
 ];
+
+/* Pré-carrega os recortes (PNG sem fundo) do bastão para "assinar" a foto. */
+const STICK_IMGS = SHADES.map((s) => { const im = new Image(); im.src = s.stick; return im; });
 
 /* ---------- Índices de landmarks do MediaPipe (anéis ordenados) ---------- */
 const FACE_OVAL = [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
@@ -411,11 +414,98 @@ el.divHandle.addEventListener("touchstart", startDrag, { passive: false });
 /* ========================= Recomeçar / Salvar / Share ================== */
 el.actReset.addEventListener("click", resetToChooser);
 
-function captureDataURL() {
+const SIG_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif";
+
+function roundRectPath(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+/* Desenha o bastão (PNG sem fundo) + etiqueta da cor escolhida na foto. */
+function drawSignature(o, w, h) {
+  const shade = SHADES[activeIndex];
+  const img = STICK_IMGS[activeIndex];
+  const m = Math.round(w * 0.035);
+
+  // Bastão no canto inferior direito
+  if (img && img.complete && img.naturalWidth) {
+    const ratio = img.naturalWidth / img.naturalHeight;
+    const sh = Math.round(h * 0.36);
+    const sw = Math.round(sh * ratio);
+    const sx = w - m - sw;
+    const sy = h - m - sh;
+    o.save();
+    o.shadowColor = "rgba(0,0,0,.35)";
+    o.shadowBlur = Math.round(w * 0.03);
+    o.shadowOffsetY = Math.round(h * 0.006);
+    o.drawImage(img, sx, sy, sw, sh);
+    o.restore();
+  }
+
+  // Etiqueta (marca + cor) no canto inferior esquerdo
+  const f1 = Math.round(w * 0.034);
+  const f2 = Math.round(w * 0.058);
+  const brand = "OAZ Protetor Solar Stick";
+  const cor = shade.tone;
+  const padX = Math.round(w * 0.04);
+  const padY = Math.round(h * 0.02);
+  const gap = Math.round(h * 0.012);
+  const dot = Math.round(f2 * 0.72);
+
+  o.textBaseline = "top";
+  o.font = `600 ${f1}px ${SIG_FONT}`;
+  const w1 = o.measureText(brand).width;
+  o.font = `700 ${f2}px ${SIG_FONT}`;
+  const w2 = dot + Math.round(f2 * 0.35) + o.measureText(cor).width;
+
+  const pw = Math.round(Math.max(w1, w2) + padX * 2);
+  const ph = Math.round(f1 + gap + f2 + padY * 2);
+  const px = m;
+  const py = h - m - ph;
+
+  o.save();
+  o.shadowColor = "rgba(0,0,0,.30)";
+  o.shadowBlur = Math.round(w * 0.02);
+  o.shadowOffsetY = Math.round(h * 0.004);
+  roundRectPath(o, px, py, pw, ph, Math.round(ph * 0.26));
+  o.fillStyle = "rgba(15,15,17,.62)";
+  o.fill();
+  o.restore();
+
+  o.fillStyle = "rgba(255,255,255,.85)";
+  o.font = `600 ${f1}px ${SIG_FONT}`;
+  o.fillText(brand, px + padX, py + padY);
+
+  const cy = py + padY + f1 + gap;
+  o.fillStyle = shade.color;
+  roundRectPath(o, px + padX, cy + Math.round((f2 - dot) / 2), dot, dot, Math.round(dot * 0.3));
+  o.fill();
+  o.fillStyle = "#fff";
+  o.font = `700 ${f2}px ${SIG_FONT}`;
+  o.fillText(cor, px + padX + dot + Math.round(f2 * 0.35), cy);
+}
+
+/* Monta a imagem final (foto + assinatura do produto). */
+function buildCompositeCanvas() {
   const wasSplit = splitMode; splitMode = false; render();
-  const url = el.canvas.toDataURL("image/png");
+  const w = el.canvas.width, h = el.canvas.height;
+  const out = document.createElement("canvas");
+  out.width = w; out.height = h;
+  const o = out.getContext("2d");
+  o.drawImage(el.canvas, 0, 0);
+  if (activeIndex >= 0) drawSignature(o, w, h);
   splitMode = wasSplit; render();
-  return url;
+  return out;
+}
+
+function captureDataURL() {
+  return buildCompositeCanvas().toDataURL("image/png");
 }
 
 el.actSave.addEventListener("click", () => {
@@ -427,7 +517,8 @@ el.actSave.addEventListener("click", () => {
 
 el.actShare.addEventListener("click", async () => {
   try {
-    const blob = await new Promise((res) => el.canvas.toBlob(res, "image/png"));
+    const out = buildCompositeCanvas();
+    const blob = await new Promise((res) => out.toBlob(res, "image/png"));
     const file = new File([blob], "oaz-stick.png", { type: "image/png" });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: "OAZ Protetor Solar Stick", text: "Meu tom no provador OAZ" });
