@@ -14,10 +14,10 @@ const ASSET_BASE = new URL(".", import.meta.url).href;
 /* ---------- Cores REAIS medidas das swatches oficiais do OAZ ------------- */
 /* color = cor do creme; cover = cobertura na pele (0..1), calibrada suave.  */
 const SHADES = [
-  { tone: "Cor 1", name: "Claro",       color: "#d3ac82", cover: 0.18, img: "refs/img/stick_cor1.png?v=4", stick: "refs/img/stick_cor1.png?v=4", buy: "https://www.oaz.vc/protetor-facial--solar-stick--cor1/p" },
-  { tone: "Cor 2", name: "Médio Claro", color: "#c99676", cover: 0.20, img: "refs/img/stick_cor2.png?v=4", stick: "refs/img/stick_cor2.png?v=4", buy: "https://www.oaz.vc/protetor-facial--solar-stick-1/p" },
-  { tone: "Cor 3", name: "Médio",       color: "#a97343", cover: 0.25, img: "refs/img/stick_cor3.png?v=4", stick: "refs/img/stick_cor3.png?v=4", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor3/p" },
-  { tone: "Cor 4", name: "Escuro",      color: "#623e22", cover: 0.30, img: "refs/img/stick_cor4.png?v=4", stick: "refs/img/stick_cor4.png?v=4", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor4/p" },
+  { tone: "Cor 1", name: "Claro",       color: "#d3ac82", cover: 0.18, img: "refs/img/stick_cor1.png?v=5", stick: "refs/img/stick_cor1.png?v=5", buy: "https://www.oaz.vc/protetor-facial--solar-stick--cor1/p" },
+  { tone: "Cor 2", name: "Médio Claro", color: "#c99676", cover: 0.20, img: "refs/img/stick_cor2.png?v=5", stick: "refs/img/stick_cor2.png?v=5", buy: "https://www.oaz.vc/protetor-facial--solar-stick-1/p" },
+  { tone: "Cor 3", name: "Médio",       color: "#a97343", cover: 0.25, img: "refs/img/stick_cor3.png?v=5", stick: "refs/img/stick_cor3.png?v=5", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor3/p" },
+  { tone: "Cor 4", name: "Escuro",      color: "#623e22", cover: 0.30, img: "refs/img/stick_cor4.png?v=5", stick: "refs/img/stick_cor4.png?v=5", buy: "https://www.oaz.vc/protetor-facial--solar-stick-cor4/p" },
 ];
 
 /* Pré-carrega os recortes (PNG sem fundo) do bastão para "assinar" a foto. */
